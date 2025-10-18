@@ -3,7 +3,7 @@
 on: [push]
 
 jobs:
-  cowsay-example:
+  build_job_1:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -18,14 +18,27 @@ jobs:
         run: |
           # note: fixed filename to "dragon.txt" (you had "gragon.txt" which may be a typo)
           cowsay -f dragon "Run cover, I am a DRAGON.....RAWR" >> dragon.txt
-      - name: Test File Exists
-        run: grep -i "dragon" dragon.txt
 
-      - name: Read File
-        run: cat dragon.txt
+      - name: Sleep for 30 seconds
+        run: sleep 30
 
-      - name: Upload output
-        uses: actions/upload-artifact@v4
-        with:
-          name: cowsay-output
-          path: dragon.txt
+  build_job_2:
+      runs-on: ubuntu-latest
+      steps:
+        - name: sleep for 10 seconds
+          run: sleep 10
+
+        - name: Test File Exists
+          run: grep -i "dragon" dragon.txt
+
+  deploy_job_3:
+      runs-on: ubuntu-latest # Each jon need VM (Ubuntu, Windows, Macs)
+      steps:
+        - name: Read File
+          run: cat dragon.txt
+
+        - name: Upload output
+          uses: actions/upload-artifact@v4
+          with:
+            name: cowsay-output
+            path: dragon.txt
