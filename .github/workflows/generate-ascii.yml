@@ -1,22 +1,25 @@
-name: Generate ASCII Artwork
-on: push
+# Install cowsay then run the command and append to a file.
+# Save as .github/workflows/cowsay.yml
+on: [push]
 
 jobs:
-  ascii_job:
+  cowsay-example:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout Repo
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Cowsay Program
-        run: cowsay -f dragon "Run cover, I am a DRAGON.....RAWR" >> gragon.txt
+      - name: Install cowsay (Ubuntu)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y cowsay
 
-      - name: Test file exist
-        run: grep -i "dragon" dragon.txt
-
-      - name: Read file
-        run: cat dragon.txt
-
-      - name: List Repo Files
-        run: ls -ltra
-
+      - name: Run cowsay
+        run: |
+          # note: fixed filename to "dragon.txt" (you had "gragon.txt" which may be a typo)
+          cowsay -f dragon "Run cover, I am a DRAGON.....RAWR" >> dragon.txt
+      - name: Upload output
+        uses: actions/upload-artifact@v4
+        with:
+          name: cowsay-output
+          path: dragon.txt
