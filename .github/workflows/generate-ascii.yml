@@ -21,11 +21,21 @@ jobs:
 
       - name: Sleep for 30 seconds
         run: sleep 30
+      - name: Upload Dragon text file
+        uses: actions/upload-artifact@v3
+        with:
+          name: my-dragon-text-file
+          path: path/to/artifact/world.txt
 
   build_job_2:
     needs: build_job_1
     runs-on: ubuntu-latest
     steps:
+      - name: Download Dragon text file
+      - uses: actions/upload-artifact@v3
+        with:
+          name: my-dragon-text-file
+
       - name: sleep for 10 seconds
         run: sleep 10
 
@@ -36,11 +46,15 @@ jobs:
     needs: [build_job_1, build_job_2]
     runs-on: ubuntu-latest # Each jon need VM (Ubuntu, Windows, Macs)
     steps:
-        - name: Read File
-          run: cat dragon.txt
+      - name: Download Dragon text file
+      - uses: actions/upload-artifact@v3
+      - name: my-dragon-text-file
 
-        - name: Upload output
-          uses: actions/upload-artifact@v4
-          with:
-            name: cowsay-output
-            path: dragon.txt
+      - name: Read File
+        run: cat dragon.txt
+
+      - name: Upload output
+        uses: actions/upload-artifact@v4
+        with:
+          name: cowsay-output
+          path: dragon.txt
