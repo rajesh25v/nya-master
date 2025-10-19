@@ -10,6 +10,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install cowsay (Ubuntu)
+        timeout-minutes: 5
         run: |
           sudo apt-get update -y
           sudo apt-get install -y cowsay
@@ -49,6 +50,7 @@ jobs:
           grep -i "dragon" dragon.txt
 
   deploy_job_3:
+    timeout-minutes: 5
     needs: [build_job_1, build_job_2]
     runs-on: ubuntu-latest
     steps:
