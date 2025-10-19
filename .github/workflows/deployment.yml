@@ -7,6 +7,9 @@ on:
 
 jobs:
     first_job:
+      concurrency:
+        group: production-deployment
+        cancel-in-progress: true
         runs-on: ubuntu-latest
         steps:
           - name: checkout Repo
