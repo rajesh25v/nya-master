@@ -1,30 +1,36 @@
 name: My First Workflow
+
 on:
   workflow_dispatch:
-#  schedule:
-#    - cron: "*/1 * * * *"
-#  push
+  #schedule:
+  #  - cron: "*/1 * * * *"
+  #push:
 
 jobs:
-    first_job:
-      concurrency:
-        group: production-deployment
-        cancel-in-progress: true
-        runs-on: ubuntu-latest
-        steps:
-          - name: checkout Repo
-            uses: actions/checkout@v4
-          - name: Welcome message
-            run: echo "My first Github Actions job"
-          - name: List files
-            run: ls
-          - name: Read file
-            run: cat README.md
+  first_job:
+    concurrency:
+      group: production-deployment
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
 
-    first_job_2:
-      if: github.ref == 'refs/heads/main'
-      needs: first_job
-      steps:
-            - name: Welcome message
-              run: echo "My first Github Actions job"
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
 
+      - name: Welcome message
+        run: echo "My first GitHub Actions job"
+
+      - name: List files
+        run: ls
+
+      - name: Read file
+        run: cat README.md
+
+  first_job_2:
+    if: github.ref == 'refs/heads/main'
+    needs: first_job
+    runs-on: ubuntu-latest   # ✅ required
+
+    steps:
+      - name: Welcome message
+        run: echo "My second GitHub Actions job"
