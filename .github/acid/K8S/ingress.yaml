@@ -1,0 +1,5 @@
+apiVersion: networking.K8s.io/v1
+kind: Ingress
+
+##nginx
+## specifying the host and port and load balancer

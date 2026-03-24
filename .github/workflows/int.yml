@@ -1,0 +1,77 @@
+name: CICD Int
+
+on:
+    push:
+       branch: ["develop" ]
+
+jobs:
+   build:
+      runs-on: [self-hosted ]
+      steps:
+         - name: checkout code
+           uses: actions/checkout@v4
+
+         - name: Set up Maven and jdk
+           uses: github/setup-java-maven@stable
+           with:
+               jdk_version: "21.0.1+12"
+               maven_version: '3.8.8'
+               factory: 'CFT'
+
+         - name: setup JFrog CLI
+           uses: github/setup=jfrog-cli@v4
+           env:
+              JF_ENV_1: ${{secrets.JF_SECRET_ENV_1}}
+           with:
+              download-repository: jfrog-cli-remote
+
+         - name: Build and unit tests
+           run:
+              mvn -f mya/pom.xml clean install
+         - name: Functional Tests
+           run: mvn -f mya/mya-fitnesse/pom.xml -Pfitnesse-integration integration-test
+
+         - name: Sonar analysis
+           uses: GithubActions/build-push-action@stable
+           with:
+              sonar-properties: 'mya/sonar-project.properties'
+              sonar-token: ${{secrets.SONAR_DSP_TOKEN}}
+
+         - name: Build master Image and push to DTR
+           uses: GithubActions/build-push-action@stable
+           with:
+              registry: harbour site url
+              dockerfile-path: nya/nya-master/acid/Docker/Dockerfile
+              tags: nya-a55-dev/nya-master-int:${{github.sha }}
+              build-arg: VERSION=0.01-SNAPSHOT
+           env:
+              DOCKER_USER: ${{secrets.HARBOUR_USERNAME}}
+              DOCKER_PASSWORD: ${{secrets.HARBOUR_SECRET}}
+
+         - name: Build orgin api  Image and push to DTR
+           uses: GithubActions/build-push-action@stable
+           with:
+             registry: harbour site url
+             dockerfile-path: nya/nya-oerigin-api/acid/Docker/Dockerfile
+             tags: nya-a55-dev/nya-master-int:${{github.sha }}
+             build-arg: VERSION=0.01-SNAPSHOT
+           env:
+             DOCKER_USER: ${{secrets.HARBOUR_USERNAME}}
+             DOCKER_PASSWORD: ${{secrets.HARBOUR_SECRET}}
+
+   deploy-master:
+      needs: build
+      runs-on: [self-hosted ]
+      steps:
+        - name: checkout code
+          uses: actions/checkoout@v4
+
+        - name: Set tag in deployment
+          run: sed -i -e 's,IMAGE_TAG, ${{ github.sha }},g' nya/nya-master/acid/k8s/deployment.yml
+          shell: bash
+        - name: Deploy master to kubernetes
+          uses: githubActions/kube-deploy@main
+          with:
+             kube-config: ${{ secrets.KUBECONFIG }}
+             kubernetes-files-directory: ./nya/nya-master/acid/K8S
+             workspace: nya-a5556-dev-non-prd

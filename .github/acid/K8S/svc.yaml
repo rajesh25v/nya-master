@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nya-master-rpod-svc
+  labels:
+    app.kubernetes.io/name: nya-master-prod
+    app.kubernetes.io/component: master-prod
+
+spec:
+  ports:
+    - name: 8080-tcp
+      port: 8080
+      targetPort: 8080
+  selector:
+     app.kubernetes.io/name: nya-master-prod
+     app.kubernetes.io/component: master-prod
+  type: ClusterIP
