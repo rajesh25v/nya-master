@@ -1,0 +1,45 @@
+name: CICD | Deploy to Pre-Prod | Manual Trigger
+
+on:
+  workflow_dispatch:
+
+env:
+  WORKSPACE: nya-a224-prd-pre-prod
+
+jobs:
+  find-latest-tag-from-backend:
+    runs-on: [ self-hosted ]
+    outputs:
+      LAST_TAG: ${{ steps.find-last-commit.outputs.LAST_TAG }}
+    steps:
+        - name: Checkout code
+          uses: actions/checkout@v3
+          with:
+            repository: 'CRT/nya-master'
+            ref: develop
+            fetch-depth: 0
+        - name: Find last tag
+          id: find-last-commit
+          run: |
+            LAST_TAG=$(git describe --tags --abrev=0)
+            echo "LAST_TAG=$LAST_TAG" >> $GITHUB_OUTPUT
+
+  deploy-to-pre-prod:
+    name: Deploy to Pre-Prod
+    runs-on: [ self-hosted ]
+    strategy:
+      matrix:
+        module: [ nya-master, nya-origin-api  ]
+      steps:
+        - name: checkout code
+          uses: actions/checkout@v3
+          with:
+            repository: 'CRT/${{ matrix.module }}'
+            ref: develop
+            fetch-depth: 0
+        - name: Deploy to Pre-Prod
+          uses: GitHubActions/kubectl@v2
+          with:
+            kube-config: ${{ secrets.KUBE_CONFIG }}
+            workspace: ${{ env.WORKSPACE }}
+            kubernetes-files-directory: nya/${{ matrix.module }}/acid/pre-prod

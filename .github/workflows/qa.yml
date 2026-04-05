@@ -1,0 +1,86 @@
+name: Homol released triggered on release creation
+
+
+on:
+  release:
+    types: [ published ] ##created
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        description: 'Branch name to use 'for the release'
+        required: true
+      tag_name:
+        description: 'Tag name to use for the release'
+        required: true
+jobs:
+  set_env_vars:
+    runs-on: [self-hosted ]
+    outputs:
+      tag_name: ${{ steps.set_env.outputs.tag_name }}
+      branch_name: ${{ steps.set_env.outputs.branch_name }}
+    steps:
+      - id: set_vars
+        run: |
+            echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+            echo "branch_name=${{ github.event.release.target_commitish }}" >> $GITHUB_OUTPUT
+
+  build:
+    runs-on: [self-hosted ]
+    needs: [ set_env_vars ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.set_env_vars.outputs.branch_name }}
+      - name: Build and Test
+        run: |
+          echo "Building and testing for tag: ${{ needs.set_env_vars.outputs.tag_name }} on branch: ${{ needs.set_env_vars.outputs.branch_name }}"
+      - name: Set up Maven and jdk
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Build with Maven
+        run: mvn clean install -DskipTests
+      - name: Run tests with Maven
+        run: mvn test
+      - name: Version release
+        run: |
+         sed  -i -e "s, RELEASE_TAG,$TAG_NAME,g" NYA/*/K8S/homol/deployment.yaml
+         sed -i -e "s,0.0.1-SNAPSHOT,$TAG_NAME,g" NYA/*/pom.xml
+         sed -i -e "s,0.0.1-SNAPSHOT,$TAG_NAME,g" NYA/pom.xml
+        env:
+            TAG_NAME: ${{ needs.set_env_vars.outputs.tag_name }}
+      - name: commit version
+        run: |
+          git add .
+          git commit -m "chore(release): Create release $BRANCH_NAME" --no-verify
+          git push https://github.com/rajesh25v/nya-master.git
+        env:
+          BRANCH_NAME: ${{ needs.set_env_vars.outputs.branch_name }}
+
+      - name: Build master Image and push to dockerhub
+        uses: GitHubActions/build-push-action@v3
+        with:
+          registry: docker.io
+          dockerfile-path: ./nya/nya-master/acid/Docker/Dockerfile
+          tags: rajesh25v/nya-master:${{ needs.set_env_vars.outputs.tag_name }}
+          build-args: VERSION=${{ needs.set_env_vars.outputs.tag_name }}
+        env:
+            DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+            DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+  deploy-master:
+    needs: [build, set_env_vars]
+    runs-on: [self-hosted ]
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.set_env_vars.outputs.branch_name }}
+      - name: Deploy master to Kubernetes
+        uses: githubactions/kubectl@v3
+        with:
+          kube-config: ${{ secrets.KUBE_CONFIG }}
+          kubernetes-files-directory: ./nya/nya-master/K8S/homol
+          workspace: nya-a24f-dev-non-prod
